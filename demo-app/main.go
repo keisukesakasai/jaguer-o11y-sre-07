@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	tracer = otel.Tracer("jaguar-demo")
+	tracer = otel.Tracer("jaguer-demo")
 )
 
 func main() {
@@ -39,34 +39,40 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("main handler")
 
 	time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
-	prosessing(ctx)
+	processing(ctx, w)
 }
 
-func prosessing(ctx context.Context) {
+func processing(ctx context.Context, w http.ResponseWriter) {
 	ctx, span := tracer.Start(ctx, "processing...")
 	logger := logging.GetLoggerWithTraceID(ctx)
 	logger.Infof("processing...")
 	defer span.End()
 
-	if rand.Float64() < 1.0/100.0 {
-		funcAbnormal(ctx)
+	if rand.Float64() < 1.0/10.0 {
+		funcAbnormal(ctx, w)
 	} else {
-		funcNormal(ctx)
+		funcNormal(ctx, w)
 	}
 }
 
-func funcNormal(ctx context.Context) {
+func funcNormal(ctx context.Context, w http.ResponseWriter) {
 	ctx, span := tracer.Start(ctx, "funcNormal")
 	defer span.End()
 	logger := logging.GetLoggerWithTraceID(ctx)
 	logger.Infof("funcNormal")
 	time.Sleep(10 * time.Millisecond)
+	w.WriteHeader(http.StatusOK)
 }
 
-func funcAbnormal(ctx context.Context) {
+func funcAbnormal(ctx context.Context, w http.ResponseWriter) {
 	ctx, span := tracer.Start(ctx, "funcAbNormal(Oh...taking a lot of time...)")
 	defer span.End()
 	logger := logging.GetLoggerWithTraceID(ctx)
 	logger.Infof("funcAbNormal(Oh...taking a lot of time...)")
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
+	logger.Infof("something is happening...")
+	time.Sleep(1 * time.Second)
+	logger.Errorf("I don’t know anything...Error occurred...")
+	time.Sleep(1 * time.Second)
+	w.WriteHeader(http.StatusInternalServerError)
 }

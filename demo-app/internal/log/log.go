@@ -14,8 +14,9 @@ const (
 	appVersionEnv            = "APP_VERSION"
 	serviceNameEnv           = "SERVICE_NAME"
 	OtelCollectorEndpointEnv = "OTEL_COLLECTOR_ENDPOINT"
-	traceKey                 = "trace_id"
-	spanKey                  = "span_id"
+	traceKey                 = "logging.googleapis.com/trace"
+	spanKey                  = "logging.googleapis.com/spanId"
+	prefixTraceId            = "projects/datadog-sandbox/traces/"
 )
 
 type contextKeyLoggerKey int
@@ -73,7 +74,7 @@ func defaultZapConfig() zap.Config {
 			TimeKey:        "time",
 			NameKey:        "logger",
 			CallerKey:      "caller",
-			StacktraceKey:  "stacktrace",
+			StacktraceKey:  "stack_trace",
 			EncodeLevel:    zapcore.CapitalLevelEncoder,
 			EncodeTime:     zapcore.RFC3339NanoTimeEncoder,
 			EncodeDuration: zapcore.StringDurationEncoder,
@@ -89,7 +90,7 @@ func WithTrace(ctx context.Context, logger *zap.SugaredLogger) *zap.SugaredLogge
 
 	if spanCtx.HasTraceID() {
 		traceID := spanCtx.TraceID().String()
-		logger = logger.With(traceKey, traceID)
+		logger = logger.With(traceKey, prefixTraceId+traceID)
 	}
 
 	if spanCtx.HasSpanID() {
@@ -101,8 +102,8 @@ func WithTrace(ctx context.Context, logger *zap.SugaredLogger) *zap.SugaredLogge
 func GetLoggerWithTraceID(ctx context.Context) *zap.SugaredLogger {
 	logger := NewLogger()
 	if spanCtx := trace.SpanContextFromContext(ctx); spanCtx.IsValid() {
-		logger = logger.With("trace_id", spanCtx.TraceID().String())
-		logger = logger.With("span_id", spanCtx.SpanID().String())
+		logger = logger.With(traceKey, prefixTraceId+spanCtx.TraceID().String())
+		logger = logger.With(spanKey, spanCtx.SpanID().String())
 	}
 	return logger
 }
